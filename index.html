@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You just got Swooshed!</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #2a1a4a 0%, #0b0618 55%, #05030c 100%);
+      color: white;
+      overflow: hidden;
+    }
+
+    body.glosor-open {
+      overflow: auto;
+    }
+
+    .page {
+      text-align: center;
+      padding: 32px 20px;
+      max-width: 900px;
+    }
+
+    .emoji {
+      width: min(420px, 86vw);
+      height: auto;
+      display: block;
+      margin: 0 auto 28px;
+      filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+      animation: bounce 1.8s ease-in-out infinite;
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 7vw, 4.4rem);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      background: linear-gradient(
+        90deg,
+        #ff4d4d,
+        #ff9f1a,
+        #ffe600,
+        #3dff6e,
+        #3d9cff,
+        #b26bff,
+        #ff4d4d
+      );
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: rainbow 3s linear infinite;
+    }
+
+    .tagline {
+      margin-top: 18px;
+      font-size: 1.05rem;
+      opacity: 0.7;
+    }
+
+    .birthday {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      border: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    .birthday:hover,
+    .birthday:focus {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .secret {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+
+    .secret:hover,
+    .secret:focus {
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(360px, 90vw);
+      background: #161022;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: left;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    .modal h2 {
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      opacity: 0.8;
+    }
+
+    input {
+      width: 100%;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #0d0916;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .actions button {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .go {
+      background: #7c5cff;
+      color: white;
+    }
+
+    .cancel {
+      background: #2a2438;
+      color: white;
+    }
+
+    .error {
+      min-height: 1.2em;
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      opacity: 0.65;
+      margin: -6px 0 12px;
+    }
+
+    #snakeWrap {
+      display: none;
+      text-align: center;
+    }
+
+    #snakeWrap.show {
+      display: block;
+    }
+
+    #snakeWrap h2 {
+      margin-bottom: 10px;
+      font-size: 1.6rem;
+    }
+
+    #score {
+      margin-bottom: 12px;
+      opacity: 0.85;
+    }
+
+    #game {
+      display: block;
+      margin: 0 auto;
+      background: #0d0916;
+      border: 3px solid #7c5cff;
+      border-radius: 12px;
+      max-width: 90vw;
+      height: auto;
+    }
+
+    .pads {
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 44px 44px 44px;
+      gap: 6px;
+      width: 192px;
+      margin: 14px auto 0;
+    }
+
+    .pads button {
+      border: none;
+      border-radius: 8px;
+      background: #2a2438;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .up { grid-column: 2; grid-row: 1; }
+    .left { grid-column: 1; grid-row: 2; }
+    .right { grid-column: 3; grid-row: 2; }
+    .down { grid-column: 2; grid-row: 3; }
+
+    #glosorApp {
+      display: none;
+      width: min(420px, 92vw);
+    }
+
+    #glosorApp.show {
+      display: block;
+    }
+
+    .g-card {
+      display: none;
+      background: #161022;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    .g-card.show {
+      display: block;
+    }
+
+    .g-card h2 {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+
+    .g-sub {
+      opacity: 0.7;
+      margin-bottom: 18px;
+      font-size: 0.95rem;
+    }
+
+    .g-card input {
+      margin-bottom: 14px;
+    }
+
+    .g-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .g-btns button,
+    .choice-btn,
+    .g-main-btn {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .g-next { background: #7c5cff; }
+    .g-klar { background: #2a2438; }
+    .g-main-btn { width: 100%; background: #7c5cff; margin-top: 8px; }
+    .choice-btn {
+      width: 100%;
+      background: #2a2438;
+      margin-bottom: 10px;
+      text-align: left;
+      padding: 14px 16px;
+    }
+    .choice-btn:hover { background: #3a3250; }
+    .choice-btn.main { background: #7c5cff; }
+
+    .g-count {
+      margin-top: 14px;
+      opacity: 0.7;
+      font-size: 0.9rem;
+    }
+
+    .ask-word {
+      font-size: 2rem;
+      font-weight: 900;
+      text-align: center;
+      margin: 8px 0 16px;
+      word-break: break-word;
+    }
+
+    .g-feedback {
+      min-height: 1.3em;
+      margin: 6px 0 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .g-feedback.ok { color: #3dff6e; }
+    .g-feedback.bad { color: #ff6b6b; }
+
+    .g-tiny {
+      text-align: center;
+      opacity: 0.7;
+      margin-bottom: 10px;
+    }
+
+    @keyframes rainbow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 300% 50%; }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <button class="birthday" id="birthdayBtn" type="button">För Junia</button>
+  <button class="secret" id="secretBtn" type="button">Nothing Out Of Place Here!</button>
+
+  <main class="page" id="mainPage">
+    <img class="emoji" id="mainImage" src="swoosh.png" alt="" />
+    <h1 id="mainTitle">You just got Swooshed!</h1>
+    <p class="tagline" id="mainTag">Gotcha.</p>
+  </main>
+
+  <audio id="juniaSound" src="junia.mp3" preload="auto"></audio>
+
+  <div id="snakeWrap">
+    <h2>Snake</h2>
+    <p id="score">Poäng: 0</p>
+    <canvas id="game" width="400" height="400"></canvas>
+    <div class="pads">
+      <button class="up" type="button" data-dir="up">↑</button>
+      <button class="left" type="button" data-dir="left">←</button>
+      <button class="right" type="button" data-dir="right">→</button>
+      <button class="down" type="button" data-dir="down">↓</button>
+    </div>
+  </div>
+
+  <section id="glosorApp">
+    <div class="g-card show" id="enterCard">
+      <h2>Glosor</h2>
+      <p class="g-sub">Skriv in ett ord i taget. Tryck Nästa för fler. Tryck Klar när du är färdig.</p>
+      <label for="langInput">språk</label>
+      <input id="langInput" autocomplete="off" />
+      <label for="svInput">svenska</label>
+      <input id="svInput" autocomplete="off" />
+      <div class="g-btns">
+        <button class="g-klar" id="klarBtn" type="button">Klar</button>
+        <button class="g-next" id="nastaBtn" type="button">Nästa</button>
+      </div>
+      <p class="g-count" id="wordCount">0 glosor inskrivna</p>
+    </div>
+
+    <div class="g-card" id="choiceCard">
+      <h2>Hur vill du öva?</h2>
+      <p class="g-sub" id="choiceSub">Välj riktning</p>
+      <button class="choice-btn main" id="svToLang" type="button">Svenska → språket</button>
+      <button class="choice-btn" id="langToSv" type="button">Språket → svenska</button>
+      <button class="choice-btn" id="backToEnter" type="button">Tillbaka och skriv fler</button>
+    </div>
+
+    <div class="g-card" id="quizCard">
+      <p class="g-tiny" id="quizHint">Översätt</p>
+      <p class="ask-word" id="askWord">—</p>
+      <label for="answerInput">Din översättning</label>
+      <input id="answerInput" autocomplete="off" />
+      <p class="g-feedback" id="feedback"></p>
+      <button class="g-main-btn" id="checkBtn" type="button">Kolla</button>
+      <p class="g-count" id="quizScore">Poäng: 0 / 0</p>
+    </div>
+
+    <div class="g-card" id="doneCard">
+      <h2>Klar!</h2>
+      <p class="g-sub" id="doneText">Bra jobbat.</p>
+      <button class="g-main-btn" id="againBtn" type="button">Öva igen</button>
+      <button class="choice-btn" id="newListBtn" type="button">Nya glosor</button>
+    </div>
+  </section>
+
+  <div class="overlay" id="loginOverlay">
+    <form class="modal" id="loginForm">
+      <h2>Log in Required</h2>
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="off" />
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="off" />
+      <p class="hint">Kontot <b>Glosor</b> behöver inget lösenord.</p>
+      <div class="error" id="loginError"></div>
+      <div class="actions">
+        <button class="cancel" id="cancelBtn" type="button">Close</button>
+        <button class="go" type="submit">Log in</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const overlay = document.getElementById("loginOverlay");
+    const form = document.getElementById("loginForm");
+    const errorBox = document.getElementById("loginError");
+
+    let words = [];
+    let quizDir = "sv-lang";
+    let queue = [];
+    let current = null;
+    let correctCount = 0;
+    let totalAsked = 0;
+    let revealed = false;
+
+    document.getElementById("birthdayBtn").addEventListener("click", function () {
+      hideGlosor();
+      document.getElementById("snakeWrap").classList.remove("show");
+      document.getElementById("mainPage").style.display = "block";
+      document.getElementById("mainImage").src = "födelsedag.png";
+      document.getElementById("mainTitle").textContent = "GRATTIS PÅ FÖDELSEDAGEN!!!";
+      document.getElementById("mainTag").textContent = "För Junia";
+    });
+
+    document.getElementById("secretBtn").addEventListener("click", function () {
+      errorBox.textContent = "";
+      overlay.classList.add("open");
+      document.getElementById("username").focus();
+    });
+
+    document.getElementById("cancelBtn").addEventListener("click", function () {
+      overlay.classList.remove("open");
+    });
+
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) overlay.classList.remove("open");
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const userKey = username.toLowerCase().replace(/\s+/g, "");
+      const passKey = password.toLowerCase().replace(/\s+/g, "");
+
+      if (userKey === "glosor") {
+        overlay.classList.remove("open");
+        openGlosor();
+      } else if (userKey === "melker" && passKey === "69420") {
+        overlay.classList.remove("open");
+        hideGlosor();
+        document.getElementById("mainImage").src = "melker.png";
+        document.getElementById("mainTitle").textContent = "EINSHAKAKOAKOAKOKAKOAKAKOAKO";
+        document.getElementById("mainTag").textContent = "";
+      } else if (userKey === "oliver" && passKey === "67") {
+        overlay.classList.remove("open");
+        hideGlosor();
+        document.getElementById("mainImage").src = "oliver.png";
+        document.getElementById("mainTitle").textContent = "Torktumlare";
+        document.getElementById("mainTag").textContent = "";
+      } else if (userKey === "junia" && passKey === "kort") {
+        overlay.classList.remove("open");
+        hideGlosor();
+        startSnake();
+      } else {
+        errorBox.textContent = "Wrong username or password.";
+      }
+    });
+
+    document.getElementById("username").addEventListener("input", function () {
+      const userKey = this.value.trim().toLowerCase().replace(/\s+/g, "");
+      const pass = document.getElementById("password");
+      if (userKey === "glosor") {
+        pass.value = "";
+        pass.placeholder = "Behövs inte";
+        pass.disabled = true;
+      } else {
+        pass.placeholder = "";
+        pass.disabled = false;
+      }
+    });
+
+    function showCard(id) {
+      ["enterCard", "choiceCard", "quizCard", "doneCard"].forEach(function (name) {
+        document.getElementById(name).classList.toggle("show", name === id);
+      });
+    }
+
+    function openGlosor() {
+      document.getElementById("mainPage").style.display = "none";
+      document.getElementById("snakeWrap").classList.remove("show");
+      document.getElementById("glosorApp").classList.add("show");
+      document.body.classList.add("glosor-open");
+      words = [];
+      updateCount();
+      document.getElementById("langInput").value = "";
+      document.getElementById("svInput").value = "";
+      showCard("enterCard");
+      document.getElementById("langInput").focus();
+    }
+
+    function hideGlosor() {
+      document.getElementById("glosorApp").classList.remove("show");
+      document.body.classList.remove("glosor-open");
+      document.getElementById("mainPage").style.display = "block";
+    }
+
+    function saveCurrentPair() {
+      const lang = document.getElementById("langInput").value.trim();
+      const sv = document.getElementById("svInput").value.trim();
+      if (!lang || !sv) return false;
+      words.push({ lang: lang, sv: sv });
+      document.getElementById("langInput").value = "";
+      document.getElementById("svInput").value = "";
+      updateCount();
+      return true;
+    }
+
+    function updateCount() {
+      const n = words.length;
+      document.getElementById("wordCount").textContent = n + (n === 1 ? " glosa inskriven" : " glosor inskrivna");
+    }
+
+    document.getElementById("nastaBtn").addEventListener("click", function () {
+      if (!saveCurrentPair()) return;
+      document.getElementById("langInput").focus();
+    });
+
+    document.getElementById("langInput").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("svInput").focus();
+      }
+    });
+
+    document.getElementById("svInput").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (!saveCurrentPair()) return;
+        document.getElementById("langInput").focus();
+      }
+    });
+
+    document.getElementById("klarBtn").addEventListener("click", function () {
+      saveCurrentPair();
+      if (!words.length) {
+        document.getElementById("wordCount").textContent = "Skriv minst en glosa först.";
+        return;
+      }
+      document.getElementById("choiceSub").textContent = words.length + " glosor redo.";
+      showCard("choiceCard");
+    });
+
+    document.getElementById("backToEnter").addEventListener("click", function () {
+      showCard("enterCard");
+      document.getElementById("langInput").focus();
+    });
+
+    document.getElementById("svToLang").addEventListener("click", function () {
+      startQuiz("sv-lang");
+    });
+
+    document.getElementById("langToSv").addEventListener("click", function () {
+      startQuiz("lang-sv");
+    });
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+      }
+      return a;
+    }
+
+    function startQuiz(dir) {
+      quizDir = dir;
+      queue = shuffle(words);
+      correctCount = 0;
+      totalAsked = 0;
+      revealed = false;
+      showCard("quizCard");
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      if (!queue.length) {
+        document.getElementById("doneText").textContent = "Poäng: " + correctCount + " av " + totalAsked + " rätt.";
+        showCard("doneCard");
+        return;
+      }
+      current = queue.shift();
+      revealed = false;
+      const fromSv = quizDir === "sv-lang";
+      document.getElementById("askWord").textContent = fromSv ? current.sv : current.lang;
+      document.getElementById("quizHint").textContent = fromSv ? "Översätt till språket" : "Översätt till svenska";
+      document.getElementById("answerInput").value = "";
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("feedback").className = "g-feedback";
+      document.getElementById("checkBtn").textContent = "Kolla";
+      document.getElementById("quizScore").textContent = "Poäng: " + correctCount + " / " + totalAsked + " · " + queue.length + " kvar";
+      document.getElementById("answerInput").focus();
+    }
+
+    function normalize(text) {
+      return text.toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function checkAnswer() {
+      if (!current) return;
+      if (revealed) {
+        nextQuestion();
+        return;
+      }
+      const answer = document.getElementById("answerInput").value;
+      const expected = quizDir === "sv-lang" ? current.lang : current.sv;
+      totalAsked += 1;
+      const ok = normalize(answer) === normalize(expected);
+      const box = document.getElementById("feedback");
+      if (ok) {
+        correctCount += 1;
+        box.textContent = "Rätt!";
+        box.className = "g-feedback ok";
+      } else {
+        box.textContent = "Rätt svar: " + expected;
+        box.className = "g-feedback bad";
+      }
+      revealed = true;
+      document.getElementById("checkBtn").textContent = queue.length ? "Nästa" : "Klar";
+      document.getElementById("quizScore").textContent = "Poäng: " + correctCount + " / " + totalAsked + " · " + queue.length + " kvar";
+    }
+
+    document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+    document.getElementById("answerInput").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkAnswer();
+      }
+    });
+
+    document.getElementById("againBtn").addEventListener("click", function () {
+      showCard("choiceCard");
+    });
+
+    document.getElementById("newListBtn").addEventListener("click", function () {
+      words = [];
+      updateCount();
+      document.getElementById("langInput").value = "";
+      document.getElementById("svInput").value = "";
+      showCard("enterCard");
+      document.getElementById("langInput").focus();
+    });
+
+    function startSnake() {
+      document.getElementById("mainPage").style.display = "none";
+      document.getElementById("snakeWrap").classList.add("show");
+
+      const eatSound = document.getElementById("juniaSound");
+
+      function playEatSound() {
+        const sound = eatSound.cloneNode(true);
+        sound.play().catch(function () {});
+      }
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const box = 20;
+      const tiles = canvas.width / box;
+      const cubeImg = new Image();
+      cubeImg.src = "junia.png";
+
+      let snake, dir, nextDir, food, score, alive, restartTimer;
+
+      function placeFood() {
+        return {
+          x: Math.floor(Math.random() * tiles),
+          y: Math.floor(Math.random() * tiles)
+        };
+      }
+
+      function resetGame() {
+        snake = [{ x: 8, y: 8 }];
+        dir = "right";
+        nextDir = "right";
+        food = placeFood();
+        score = 0;
+        alive = true;
+        document.getElementById("score").textContent = "Poäng: 0";
+        draw();
+      }
+
+      function setDir(value) {
+        if (value === "up" && dir !== "down") nextDir = "up";
+        if (value === "down" && dir !== "up") nextDir = "down";
+        if (value === "left" && dir !== "right") nextDir = "left";
+        if (value === "right" && dir !== "left") nextDir = "right";
+      }
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowUp") setDir("up");
+        if (event.key === "ArrowDown") setDir("down");
+        if (event.key === "ArrowLeft") setDir("left");
+        if (event.key === "ArrowRight") setDir("right");
+      });
+
+      document.querySelectorAll(".pads button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          setDir(button.getAttribute("data-dir"));
+        });
+      });
+
+      function tick() {
+        if (!alive) return;
+
+        dir = nextDir;
+        const head = { x: snake[0].x, y: snake[0].y };
+        if (dir === "up") head.y -= 1;
+        if (dir === "down") head.y += 1;
+        if (dir === "left") head.x -= 1;
+        if (dir === "right") head.x += 1;
+
+        if (head.x < 0 || head.y < 0 || head.x >= tiles || head.y >= tiles) {
+          return gameOver();
+        }
+
+        for (let i = 0; i < snake.length; i += 1) {
+          if (snake[i].x === head.x && snake[i].y === head.y) {
+            return gameOver();
+          }
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+          score += 1;
+          document.getElementById("score").textContent = "Poäng: " + score;
+          playEatSound();
+          food = placeFood();
+        } else {
+          snake.pop();
+        }
+
+        draw();
+      }
+
+      function draw() {
+        ctx.fillStyle = "#0d0916";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#ff5d8f";
+        ctx.fillRect(food.x * box, food.y * box, box - 2, box - 2);
+
+        for (let i = 0; i < snake.length; i += 1) {
+          const part = snake[i];
+          if (cubeImg.complete && cubeImg.naturalWidth > 0) {
+            ctx.drawImage(cubeImg, part.x * box, part.y * box, box, box);
+          } else {
+            ctx.fillStyle = i === 0 ? "#7cff9a" : "#3dff6e";
+            ctx.fillRect(part.x * box, part.y * box, box - 2, box - 2);
+          }
+        }
+      }
+
+      function gameOver() {
+        alive = false;
+        document.getElementById("score").textContent = "Game over! Poäng: " + score + " — startar om...";
+        clearTimeout(restartTimer);
+        restartTimer = setTimeout(resetGame, 900);
+      }
+
+      cubeImg.onload = function () {
+        draw();
+      };
+
+      resetGame();
+      setInterval(tick, 120);
+    }
+  </script>
+</body>
+</html>
